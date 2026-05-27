@@ -921,7 +921,7 @@ function logout() {
 if (!localStorage.getItem('adr_api_url')) {
   localStorage.setItem('adr_api_url', 'https://adr-barbearia-1.onrender.com');
 }
-tryRestoreSession();
+async function tryRestoreSession() {
   const s = LS.get('adr_session', null);
   if (!s) return false;
   if (Date.now() - s.ts > 8 * 3600 * 1000) { LS.del('adr_session'); return false; }
