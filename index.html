@@ -1790,3 +1790,228 @@ const SERVICOS = [
     preco: 30,
     desc: 'Corte degradê baixo com acabamento na sobrancelha. Estilo limpo e moderno.',
     imgs: ['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAQqAlgDASIAAhEBAxEB/8QAHAAAAQUBAQEAAAAAAAAAAAAAAQACAwQFBwYI/8QARRAAAQMDAgQEAwcCBQQBAwMFAQACEQMEIRIxBQZBURMiYXEygZEUI0KhscHwUtEHM2Lh8RUkNHJDU4KyFiU10hdUkqL/xAAbAQEBAQEBAQEBAAAAAAAAAAAAAQIDBAUGB//EACgRAQEAAgEEAgEEAwEBAAAAAAABAhEDBBIhMQVBURMUIkIyUmEGFf/aAAwDAQACEQMRAD8A58kkkvWwSSQRQJOCanICEUEUCSSRQJJJFFJKEkZQIBJJJAUkkEBCKA3TkEbsJsSnuygAgACcElLQt6lxUDKbSSUEYBJgCStCy4Lc3hEMIBXouCcq6tL6rZPqvbWPBqVBg8o+i5ZZrp5LhnJ7WwajZPqvUWXBKVuB
+}
+];
+
+function pageServicos() {
+  return `
+  <div class="page-header"><div><div class="page-title">SERVIÇOS</div><div class="page-sub">Nossos serviços e preços</div></div></div>
+  <div class="plans-grid">
+    ${SERVICOS.map(s => `
+    <div class="plan-card">
+      <div class="plan-tier">${sanitize(s.nome)}</div>
+      <div class="plan-price"><span class="plan-currency">R$</span><span class="plan-amount">${s.preco}</span></div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px">${sanitize(s.desc)}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function renderMpConfig() {
+  const mpKey = LS.get('adr_mp_key', '');
+  return `
+  <div class="config-section">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <svg width="22" height="16" viewBox="0 0 80 55" fill="none"><rect width="80" height="55" rx="6" fill="#009ee3"/><text x="8" y="38" font-size="22" font-weight="900" fill="#fff" font-family="Arial">MP</text></svg>
+      <div class="section-title">Mercado Pago</div>
+    </div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px">
+      Insira sua Public Key do Mercado Pago para ativar os pagamentos online.<br>
+      <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener noreferrer" style="color:var(--purple-light);text-decoration:none;font-size:12px">→ Obter chave no painel de desenvolvedores</a>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Public Key (Produção)</label>
+      <input class="form-input" id="mp-pub-key" value="${sanitize(mpKey)}" placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" maxlength="120">
+    </div>
+    <button class="btn btn-primary" onclick="saveMpKey()">Salvar integração</button>
+  </div>`;
+}
+
+const _pageConfigOrig = pageConfig;
+pageConfig = function() {
+  const base = _pageConfigOrig();
+  return base + renderMpConfig() + renderSbConfig();
+};
+
+function saveMpKey() {
+  const key = document.getElementById('mp-pub-key')?.value.trim();
+  if (!key) return showToast('Informe a Public Key.', 'var(--red)');
+  LS.set('adr_mp_key', key);
+  showToast('Integração Mercado Pago salva!');
+}
+
+function renderSbConfig() {
+  const apiUrl = localStorage.getItem('adr_api_url') || '';
+  return `
+  <div class="config-section" style="margin-top:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <div class="section-title">Backend Seguro — Sincronização</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">URL do Backend (Render)</label>
+      <input class="form-input" id="api-url-input" value="${sanitize(apiUrl)}" placeholder="https://adr-barber-api.onrender.com">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="saveApiUrl()">Salvar</button>
+      ${apiUrl ? '<button class="btn btn-ghost" onclick="testApiConnection()" style="font-size:13px">Testar conexão</button>' : ''}
+    </div>
+  </div>`;
+}
+
+function saveApiUrl() {
+  const url = (document.getElementById('api-url-input').value || '').trim().replace(/\/$/, '');
+  if (!url) return showToast('Informe a URL do backend.', 'var(--red)');
+  if (!url.startsWith('https://')) return showToast('URL deve começar com https://', 'var(--red)');
+  localStorage.setItem('adr_api_url', url);
+  showToast('✓ Backend configurado!');
+  setTimeout(() => navigate('config'), 800);
+}
+
+async function testApiConnection() {
+  const url = localStorage.getItem('adr_api_url');
+  if (!url) return showToast('Configure a URL primeiro.', 'var(--red)');
+  showToast('Testando...', 'var(--text3)');
+  try {
+    const r = await fetch(url + '/health');
+    const j = await r.json();
+    if (j.status === 'ok') showToast('✓ Backend online e funcionando!');
+    else showToast('Resposta inesperada do servidor.', 'var(--red)');
+  } catch {
+    showToast('Não foi possível conectar. Verifique a URL.', 'var(--red)');
+  }
+}
+
+let _toastTimer = null;
+function showToast(msg, color = 'var(--green)') {
+  const el  = document.getElementById('toast');
+  const svg = el.querySelector('svg');
+  const txt = document.getElementById('toast-msg');
+  txt.textContent = msg;
+  svg.setAttribute('stroke', color);
+  el.style.borderColor = color;
+  el.classList.remove('hidden');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+function togglePassVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const visible = inp.type === 'text';
+  inp.type = visible ? 'password' : 'text';
+  btn.querySelector('svg').outerHTML = visible
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+}
+
+async function resetPin(i) {
+  const c = clientes[i];
+  if (!c) return;
+  const novoPin = Math.floor(1000 + Math.random() * 9000).toString();
+  if (API.ok && c.id) {
+    const result = await API.patch('/api/clientes/' + c.id + '/reset-pin', { pin: novoPin });
+    if (result.error) return showToast(result.error, 'var(--red)');
+  } else {
+    c.pin = novoPin;
+    LS.set('adr_clientes', clientes);
+  }
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px';
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:6px">NOVO PIN GERADO</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Cliente: <strong>${sanitize(c.nome)}</strong></div>
+      <div style="background:var(--bg3);border:2px dashed var(--purple);border-radius:12px;padding:20px;margin-bottom:20px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:12px;color:var(--purple-light)">${novoPin}</div>
+      </div>
+      <a href="https://wa.me/55${c.tel.replace(/\D/g,'')}?text=Olá%20${encodeURIComponent(c.nome.split(' ')[0])}!%20Seu%20novo%20PIN%20é:%20*${novoPin}*"
+         target="_blank" rel="noopener"
+         style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:12px;color:var(--green);text-decoration:none;font-weight:600;font-size:14px;margin-bottom:10px">
+        Enviar pelo WhatsApp
+      </a>
+      <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 20px;color:var(--text2);cursor:pointer;font-size:13px;width:100%">Fechar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  showToast('PIN resetado para ' + c.nome);
+}
+
+function trocarPlano() {
+  const c = clientes[currentSession.clientIdx];
+  if (!c) return;
+  c.pagStatus = 'SemPlano'; c.plano = null; c.metodo = '';
+  LS.set('adr_clientes', clientes);
+  navigate('planos-client');
+}
+
+function escolherPlano(plano) {
+  const c = clientes[currentSession.clientIdx];
+  if (!c) return;
+  c.plano = plano; c.pagStatus = 'Pendente'; c.metodo = 'Mercado Pago';
+  LS.set('adr_clientes', clientes);
+  showToast('Plano ' + plano + ' selecionado!');
+  navigate('pagar');
+}
+
+function showForgot() {
+  ['client-form','register-form'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('forgot-form').style.display = '';
+}
+
+function showRegister() {
+  document.getElementById('client-form').style.display = 'none';
+  document.getElementById('register-form').style.display = '';
+}
+
+function showLogin() {
+  ['register-form','forgot-form'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('client-form').style.display = '';
+}
+
+async function registerClient() {
+  const nome = document.getElementById('reg-nome').value.trim();
+  const tel  = document.getElementById('reg-tel').value.trim();
+  const pin  = document.getElementById('reg-pin').value.trim();
+  const pin2 = document.getElementById('reg-pin2').value.trim();
+  const err  = document.getElementById('reg-error');
+  const showErr = (msg) => { err.textContent = msg; err.classList.add('show'); };
+  err.classList.remove('show');
+  if (!nome) return showErr('Informe seu nome completo.');
+  if (!tel)  return showErr('Informe seu WhatsApp.');
+  if (pin.length < 4) return showErr('PIN deve ter pelo menos 4 números.');
+  if (!/^\d+$/.test(pin)) return showErr('PIN deve conter apenas números.');
+  if (pin !== pin2) return showErr('Os PINs não conferem.');
+  const telLimpo = tel.replace(/\D/g, '');
+  if (clientes.find(c => c.tel.replace(/\D/g,'') === telLimpo))
+    return showErr('Este telefone já está cadastrado.');
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+  if (API.ok) {
+    const result = await API.post('/api/clientes/register', { nome, tel, pin });
+    if (result.error) {
+      btn.disabled = false; btn.textContent = 'Criar Conta';
+      return showErr(result.error);
+    }
+    clientes.push(result);
+    LS.set('adr_clientes', clientes);
+  } else {
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    clientes.push({ nome, tel, plano: null, pin, status: 'Pendente', pagStatus: 'SemPlano', metodo: '', obs: 'Auto-cadastro', desde: hoje });
+    LS.set('adr_clientes', clientes);
+  }
+  btn.disabled = false; btn.textContent = 'Criar Conta';
+  document.getElementById('reg-success').style.display = 'block';
+  document.getElementById('reg-nome').value = '';
+  document.getElementById('reg-tel').value = '';
+  document.getElementById('reg-pin').value = '';
+  document.getElementById('reg-pin2').value = '';
+  setTimeout(() => { showLogin(); document.getElementById('client-tel').value = tel; }, 4000);
+}
+
+if (!localStorage.getItem('adr_api_url')) {
+  localStorage.setItem('adr_api_url', 'https://adr-barbearia-1.onrender.com');
+}
+tryRestoreSession();
+</script>
+</body>
+</html>
