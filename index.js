@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
@@ -96,8 +97,12 @@ app.post('/api/auth/client', async (req, res) => {
 
   const telClean = tel.replace(/\D/g, '');
 
+  // Busca por tel_clean ou pelo tel original
   const { data: clientes } = await supabase.from('clientes').select('*');
-  const cliente = clientes?.find(c => c.tel.replace(/\D/g, '') === telClean && c.pin === pin);
+  const cliente = clientes?.find(c => {
+    const cTel = (c.tel_clean || c.tel || '').replace(/\D/g, '');
+    return cTel === telClean && c.pin === pin;
+  });
 
   if (!cliente) return res.status(401).json({ error: 'Telefone ou PIN incorretos.' });
 
@@ -190,12 +195,15 @@ app.post('/api/clientes/register', async (req, res) => {
   if (!nome || !tel || !pin) return res.status(400).json({ error: 'Dados incompletos.' });
 
   const telClean = tel.replace(/\D/g, '');
-  const { data: existing } = await supabase.from('clientes').select('id').eq('tel', telClean).single();
+
+  // Verifica se já existe
+  const { data: todos } = await supabase.from('clientes').select('id, tel, tel_clean');
+  const existing = todos?.find(c => (c.tel_clean || c.tel || '').replace(/\D/g, '') === telClean);
   if (existing) return res.status(400).json({ error: 'Telefone já cadastrado.' });
 
   const hoje = new Date().toLocaleDateString('pt-BR');
   const { data, error } = await supabase.from('clientes').insert({
-    nome, tel, pin, pag_status: 'SemPlano',
+    nome, tel, tel_clean: telClean, pin, pag_status: 'SemPlano',
     status: 'Pendente', obs: 'Auto-cadastro', desde: hoje
   }).select().single();
 
